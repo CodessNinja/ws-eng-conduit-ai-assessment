@@ -1,29 +1,71 @@
 # Implementation Plan
 
-This document will contain the plan for the implementation of the user story, which you should fill BEFORE you start coding. Replace the placeholder/example text below with your actual plan, while retaining the structure.
-
 ## Plan
 
-High-level step by step plan of what you will do. For example:
+- Analyse existing article feature (create, edit, storage, API flow)
+- Extend Article model to support co-authors
+- Implement co-author assignment on Create Article page
+  - BASIC: comma-separated email input
+  - ADVANCED: multi-select user dropdown
+- Update backend to store coAuthors field in article schema
+- Update authorization logic so co-authors can edit articles
+- Implement BASIC editing flow (last-write-wins, no locking)
 
-- Add a new table for chat messages,
-- Implement a repo, service and controller for reading and creating chat messages,
-- Update the React frontend to allow users to send and view messages,
-- ...
+### ADVANCED IMPLEMENTATION
+- Implement article locking system:
+  - Lock acquired when user opens edit page
+  - Store lockedBy and lockTimestamp on article
+  - Reject edits if article is locked by another user
+- Implement lock expiry:
+  - Auto-expire lock after 5 minutes of inactivity
+- Add heartbeat mechanism:
+  - Frontend sends periodic updates while editing
+- Handle lock release on:
+  - Save
+  - Navigation away
+  - Timeout
+
+- Update frontend edit page:
+  - Show lock status messages
+  - Block editing when locked
+- Add error handling for lost lock scenarios
+
+- Test full workflow manually:
+  - Create article with co-authors
+  - Edit as different users
+  - Validate locking behaviour
+
+---
 
 ## Decisions
 
-The top 2-3 decisions you have taken, plus the alternatives and rationale for your choices. Each alternative listed must be feasible (i.e., do not list alternatives would not even work). 
+### Decision 1: Use server-side locking with timestamp expiry
+- Alternative: Client-side locking only
+- Alternative: WebSocket-based real-time lock sync
+- Rationale:
+  Server-side locking ensures correctness and prevents bypassing locks from client manipulation.
 
-You should include a decision for cases where you either: change the data model, select a third-party library (or build something from scratch), or create a new mechanism/pattern. 
+---
 
-For example:
+### Decision 2: BASIC mode uses last-write-wins conflict resolution
+- Alternative: Merge conflict resolution system
+- Alternative: Version history tracking
+- Rationale:
+  Requirement explicitly allows last saved version to be used.
 
-- Decision: Use GitHub Codespaces for the development environment.
-  - Alternative: Use a local development environment.
-  - Alternative: Use Gitpod for the development environment.
-  - Rationale: Setting up a local environment is time-consuming and error-prone. Gitpod "Clasic" (hosted in the cloud) will be sunset on April 2025, and GitHub Codespaces allows leveraging Dev Containers - which can also be used locally if really needed. Hence we select GitHub Codespaces as it's the most future-proof and flexible option.
+---
+
+### Decision 3: Email/user-based co-author model
+- Alternative: Separate collaboration service
+- Alternative: Permission-based ACL system
+- Rationale:
+  Simpler integration with existing user system and meets requirements.
+
+---
 
 ## Notes
 
-Any additional notes that you think are relevant to the plan. For example, do we need to perform any changes to the AWS architecture to support the new feature? Briefly describe the changes you would need to make.
+- Locking is critical for ADVANCED evaluation
+- Ensure backend validates lock before saving edits
+- Do not modify unrelated system features
+- Focus only on Article creation and editing flows
